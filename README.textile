@@ -1,0 +1,9 @@
+h1. Textile for Arc
+
+This is a (currently imcomplete) implementation of Textile in Arc. The goal is to provide a more complete implementation of Textile than pg's implementation of Markdown. Despite its incompleteness, it is already a workable language for simple documents.
+
+h2. Changelog
+
+h3. Version 0.1
+
+Initial release. Supports blocks with attributes for class, style, and lang, but not id, and all the spans without attributes.
