@@ -109,7 +109,7 @@
   text)
 
 (def txt-span (text st et tag) ; st = start textile; et = end textile -- todo: support span attributes
-  (re-replace (string "(?<=\\W)" (txt-re-quote st) "(\\S.*?\\S?)" (txt-re-quote et) "(?=\\W)") text (string "<" tag ">" #\\ 1 "</" tag ">")))
+  (re-replace (string "(?<=\\W|^)" (txt-re-quote st) "(\\S.*?\\S?)" (txt-re-quote et) "(?=\\W|$)") text (string "<" tag ">" #\\ 1 "</" tag ">")))
 
 (def txt-re-quote (text)
   (re-replace "(\\.|\\\\|\\+|\\*|\\?|\\[|\\]|\\$|\\(|\\)|\\{|\\}|\\=|\\!|\\<|\\>|\\||\\:|-)" text (string #\\ #\\ #\\ 1)))
