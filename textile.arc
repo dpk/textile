@@ -22,8 +22,20 @@
                          "%" "span" "@" "code"))
 
 (def textile (text)
-  (trim (joinstr (txt-block
-    (txt-spans text)) "\n\n") 'both))
+  (let text (txt-preflight text)
+    (trim (joinstr (txt-block
+      (txt-spans text)) "\n\n") 'both)))
+
+(def txt-preflight (text)
+  (trim
+    (re-replace "\n{3,}" ; two blank lines or more
+      (re-replace "(?m:^[\t ]+$)" ; lines with only whitespace
+        (re-replace "\r\n?" ; standardise Unix line-ends
+          (multisubst '(("\xEF\xBB\xBF" "") ("\xFF\xFE" "") ("\xFE\xFF" "")) text) ; byte order marks
+        "\n")
+      "")
+    "\n\n")
+  'both [is _ #\newline]))
 
 (def txt-block (text)
   (flat ; some shorthand features require splicing
@@ -93,11 +105,11 @@
 
 (def txt-spans (text)
   (each (span tag) txt-std-spans*
-    (zap txt-span text span span tag))
+    (zap txt-span text span span tag)) ; thanks to rocketnia for suggesting this way of doing it.
   text)
 
 (def txt-span (text st et tag) ; st = start textile; et = end textile -- todo: support span attributes
-  (re-replace (string "(?<=\\W)" (txt-re-quote st) "(\\S.*?\\S?)" (txt-re-quote et) "(?<=\\W)") text (string "<" tag ">" #\\ 1 "</" tag ">")))
+  (re-replace (string "(?<=\\W)" (txt-re-quote st) "(\\S.*?\\S?)" (txt-re-quote et) "(?=\\W)") text (string "<" tag ">" #\\ 1 "</" tag ">")))
 
 (def txt-re-quote (text)
   (re-replace "(\\.|\\\\|\\+|\\*|\\?|\\[|\\]|\\$|\\(|\\)|\\{|\\}|\\=|\\!|\\<|\\>|\\||\\:|-)" text (string #\\ #\\ #\\ 1)))
