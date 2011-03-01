@@ -100,7 +100,7 @@
   )
 )
 
-(def txt-simple-block (text) ; todo
+(def txt-simple-block (text)
   (string "<p>" (joinstr (str-split text "\n\n") "</p>\n\n<p>") "</p>"))
 
 (def txt-spans (text)
