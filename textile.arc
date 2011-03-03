@@ -19,11 +19,12 @@
                          "*" "strong" "_" "em"
                          "-" "del" "+" "ins" "??" "cite"
                          "^" "sup" ; "~" "sub" -- tilde causes problems -- special case needs to be made.
-                         "%" "span" "@" "code"))
+                         "%" "span" "@" "code")
+   txt-shelf*       (table))
 
 (def textile (text)
   (let text (txt-preflight text)
-    (trim (txt-spans (txt-block text)) 'both)))
+    (trim (txt-unshelve (txt-spans (txt-block text))) 'both)))
 
 (def txt-preflight (text)
   (trim
@@ -134,9 +135,18 @@
 (def txt-bq (text bname battr)
   (string "<blockquote" battr ">" (txt-simple-block text) "</blockquote>"))
 (def txt-bc (text bname battr)
-  (string "<pre" battr "><code" battr ">" (txt-html-chars text) "</code></pre>"))
+  (txt-shelve (string "<pre" battr "><code" battr ">" (txt-html-chars text) "</code></pre>")))
 (def txt-pre (text bname battr)
-  (string "<pre" battr ">" (txt-html-chars text) "</pre>"))
+  (txt-shelve (string "<pre" battr ">" (txt-html-chars text) "</pre>")))
+
+(def txt-shelve (text)
+  (let id (string (uniq))
+    (= txt-shelf*.id text)
+    (string "<textile:shelf " id " />")))
+(def txt-unshelve (text)
+  (re-replace "<textile:shelf (.+?) />" text
+    (fn (tag id)
+      (txt-shelf* id))))
 
 (def str-split (blob delim) ; hacky
   (tokens
