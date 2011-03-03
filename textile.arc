@@ -23,8 +23,7 @@
 
 (def textile (text)
   (let text (txt-preflight text)
-    (trim (joinstr (txt-block
-      (txt-spans text)) "\n\n") 'both)))
+    (trim (txt-spans (txt-block text)) 'both)))
 
 (def txt-preflight (text)
   (trim
@@ -38,37 +37,34 @@
   'both [is _ #\newline]))
 
 (def txt-block (text)
-  (flat ; some shorthand features require splicing
-    (= ext? nil tag "p" xattrs "" content "") ; todo -- fixme so not to use globals
-    (map
-      txt-html-block (str-split text "\n\n"))))
-
-(def txt-html-block (text)
-  (with (bname (cadr (re-match-pat (string "^" txt-block-re*) text)) retcon "")
-    (if bname ; if there's a tag name...
-      (let (_ _ txtattrs txtext?) (re-match-pat txt-blocktag-re* text)
-        (when ext? ; when the previous tag is an extended block
-          (= retcon (string (txt-do-tag content tag (txt-pa xattrs)) "\n\n")
-             ext?   nil tag "p" content "" xattrs "" tag))
-        
-        (with (txtcontent (re-replace txt-blocktag-re* text "") battr (txt-pa txtattrs))
-          (if (not (empty txtext?))
-            (do (= ext? t  tag bname   xattrs txtattrs    content txtcontent) nil)
+  (with (ext? nil tag "p" xattrs "" content "" ntext "")
+    (each block (str-split text "\n\n")
+      (= ntext (string ntext "\n\n" 
+        (with (bname (cadr (re-match-pat (string "^" txt-block-re*) block)) retcon "")
+          (if bname ; if there's a tag name...
+            (let (_ _ txtattrs txtext?) (re-match-pat txt-blocktag-re* block)
+              (when ext? ; when the previous tag is an extended block
+                (= retcon (string (txt-do-tag content tag (txt-pa xattrs)) "\n\n")
+                   ext?   nil tag "p" content "" xattrs "" tag))
+              
+              (with (txtcontent (re-replace txt-blocktag-re* block "") battr (txt-pa txtattrs))
+                (if (not (empty txtext?))
+                  (do (= ext? t  tag bname   xattrs txtattrs    content txtcontent) nil)
+                  
+                  (string retcon (if
+                    (re-match-pat "^h([1-6])$" bname)
+                    (txt-h txtcontent bname battr)
+                    
+                    (re-match-pat "^fn([0-9]+)$" bname)
+                    (txt-fn txtcontent bname battr)
+                    
+                    (txt-do-tag txtcontent bname battr))))))
             
-            (string retcon (if
-              (re-match-pat "^h([1-6])$" bname)
-              (txt-h txtcontent bname battr)
-              
-              (re-match-pat "^fn([0-9]+)$" bname)
-              (txt-fn txtcontent bname battr)
-              
-              (txt-do-tag txtcontent bname battr))))))
-      
-      ext? ; else, if there's no tag name and we're in an extended block
-      (do (= content (string content "\n\n" text)) nil)
-      
-      (txt-p text "p" "") ; otherwise, do an ordinary paragraph tag
-    )))
+            ext? ; else, if there's no tag name and we're in an extended block
+            (do (= content (string content "\n\n" block)) nil)
+            
+            (txt-p block "p" "") ; otherwise, do an ordinary paragraph tag
+          ))))) ntext))
 
 (def txt-pa (attr) ; "Parse Attributes"
   (with (class nil id "" lang "" style nil)
