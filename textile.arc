@@ -19,7 +19,7 @@
                          "*" "strong" "_" "em"
                          "-" "del" "+" "ins" "??" "cite"
                          "^" "sup" ; "~" "sub" -- tilde causes problems -- special case needs to be made.
-                         "%" "span" "@" "code")
+                         "%" "span")
    txt-shelf*       (table))
 
 (def textile (text)
@@ -100,6 +100,9 @@
   (string "<p>" (joinstr (str-split text "\n\n") "</p>\n\n<p>") "</p>"))
 
 (def txt-spans (text)
+  (= text (re-replace (string "(?<=\\W|^)@(\\S.*?\\S?)@(?=\\W|$)") text
+    (fn (txt content)
+      (txt-shelve (string "<code" (txt-pa content) ">" (txt-strip-attrs content) "</code>")))))
   (each (span tag) txt-std-spans*
     (zap txt-span text span span tag)) ; thanks to rocketnia for suggesting this way of doing it.
   text)
