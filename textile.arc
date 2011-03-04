@@ -18,13 +18,16 @@
    txt-std-spans*   (obj "**" "b" "__" "i"
                          "*" "strong" "_" "em"
                          "-" "del" "+" "ins" "??" "cite"
-                         "^" "sup" ; "~" "sub" -- tilde causes problems -- special case needs to be made.
+                         "^" "sup"  "~" "sub"
                          "%" "span")
-   txt-shelf*       (table))
+   
+   txt-shelf*       (table)
+   txt-link-shelf*  (table)
+   txt-footnotes*   (table))
 
 (def textile (text)
   (let text (txt-preflight text)
-    (trim (txt-unshelve (txt-spans (txt-block text))) 'both)))
+    (trim (txt-unshelve:txt-links:txt-spans:txt-block text) 'both)))
 
 (def txt-preflight (text)
   (trim
@@ -63,6 +66,11 @@
             
             ext? ; else, if there's no tag name and we're in an extended block
             (do (= content (string content "\n\n" block)) nil)
+            
+            (re-grep "^\\[(\\S+)\\](.+)$" (tokens block #\newline))
+            (each line (tokens block #\newline)
+              (let (_ name url) (re-match-pat "^\\[(\\S+)\\](.+)$" line)
+                (= txt-link-shelf*.name url)))
             
             (txt-p block "p" "") ; otherwise, do an ordinary paragraph tag
           ))))) ntext))
@@ -112,11 +120,18 @@
     (fn (txt content)
       (string "<" tag (txt-pa content) ">" (txt-strip-attrs content) "</" tag ">"))))
 
+(def txt-links (text)
+  (re-replace "(?<=^|\\W)\"(\\S.*?\\S?)\":([^\\s<>]+)(?=[\\s<>]|$)" text
+    (fn (_ title href)
+      (with (attr (txt-pa title) cont (txt-strip-attrs title)) 
+        (if (txt-link-shelf* href)
+          (string "<a href=\"" (txt-link-shelf* href) "\"" attr ">" cont "</a>")
+          (string "<a href=\"" href "\"" attr ">" cont "</a>"))))))
+
 (def txt-re-quote (text)
   (re-replace "(\\.|\\\\|\\+|\\*|\\?|\\[|\\]|\\$|\\(|\\)|\\{|\\}|\\=|\\!|\\<|\\>|\\||\\:|-)" text (string #\\ #\\ #\\ 1)))
 (def txt-html-chars (text)
   (multisubst '(("&" "&amp;") ("<" "&lt;") (">" "&gt;") ("\"" "&quot;")) text)) ; "&amp; must go before all others
-
 
 (def txt-lang (attr)
   (cadr (re-match-pat (string "^" txt-attr-lang*)  attr)))
@@ -124,10 +139,6 @@
   (cadr (re-match-pat (string "^" txt-attr-class*) attr)))
 (def txt-style (attr)
   (cadr (re-match-pat (string "^" txt-attr-style*) attr)))
-
-(each (txt html) txt-std-spans*
-  (eval `(def ,(sym (string "txt-" txt)) (text)
-    (txt-span text ,txt ,txt ,html))))
 
 (def txt-do-tag (text bname battr)
   (eval `(,(sym (string "txt-" bname)) ,text ,bname ,battr)))
@@ -154,6 +165,9 @@
 
 (def str-split (blob delim) ; hacky
   (tokens
-    (subst "\x01" delim blob) #\u0001))
+    (subst #\u0001 delim blob) #\u0001))
 
 (def not (what) (if what nil t))
+
+(def re-grep (pat texts)
+  (keep [re-match-pat pat _] texts))
