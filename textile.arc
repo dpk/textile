@@ -81,9 +81,7 @@
         
         (re-match-pat (string "^" txt-attr-style*) attr)
         (= style (cons (txt-style attr) style)
-           attr (re-replace (string "^" txt-attr-style*) attr ""))
-      )
-    )
+           attr (re-replace (string "^" txt-attr-style*) attr ""))))
     
   ;  (= class
   ;    (flat (map [tokens _] class)))
@@ -92,10 +90,11 @@
     (string
       (when (isnt "" lang) (string " lang=\"" lang "\""))
       (when class (string " class=\"" (joinstr class " ") "\""))
-      (when style (string " style=\"" (joinstr style ";") "\""))
-    )
-  )
-)
+      (when style (string " style=\"" (joinstr style ";") "\"")))))
+(def txt-strip-attrs (text)
+  (let are (string "^(?:" txt-attr-lang* "|" txt-attr-class* "|" txt-attr-style* ")")
+    (while (re-match are text)
+      (= text (re-replace are text ""))) text))
 
 (def txt-simple-block (text)
   (string "<p>" (joinstr (str-split text "\n\n") "</p>\n\n<p>") "</p>"))
@@ -105,8 +104,10 @@
     (zap txt-span text span span tag)) ; thanks to rocketnia for suggesting this way of doing it.
   text)
 
-(def txt-span (text st et tag) ; st = start textile; et = end textile -- todo: support span attributes
-  (re-replace (string "(?<=\\W|^)" (txt-re-quote st) "(\\S.*?\\S?)" (txt-re-quote et) "(?=\\W|$)") text (string "<" tag ">" #\\ 1 "</" tag ">")))
+(def txt-span (text st et tag) ; st = start textile; et = end textile
+  (re-replace (string "(?<=\\W|^)" (txt-re-quote st) "(\\S.*?\\S?)" (txt-re-quote et) "(?=\\W|$)") text
+    (fn (txt content)
+      (string "<" tag (txt-pa content) ">" (txt-strip-attrs content) "</" tag ">"))))
 
 (def txt-re-quote (text)
   (re-replace "(\\.|\\\\|\\+|\\*|\\?|\\[|\\]|\\$|\\(|\\)|\\{|\\}|\\=|\\!|\\<|\\>|\\||\\:|-)" text (string #\\ #\\ #\\ 1)))
